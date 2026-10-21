@@ -56,7 +56,7 @@ dependencies {
 
     // Built-in v2ray engine (AndroidLibV2rayLite v5.55.0, minSdk 21, ARM ABIs only).
     // See docs/builtin-proxy.md for provenance and the sha256 of the original AAR.
-    implementation files('libs/libv2ray.aar')
+    compileOnly files('libs/libv2ray.aar') // AGP: local .aar deps are not packaged from library modules; smarttubetv declares the runtime dep
 
     implementation 'androidx.appcompat:appcompat:' + appCompatXVersion
     testImplementation 'junit:junit:' + junitVersion

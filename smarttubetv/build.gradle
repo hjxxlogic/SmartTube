@@ -183,6 +183,10 @@ android {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 
+    // Built-in v2ray engine AAR lives in common/libs (see common/build.gradle);
+    // the app module carries the runtime dep so its classes/JNI get packaged.
+    implementation files('../common/libs/libv2ray.aar')
+
     implementation 'androidx.leanback:leanback:' + leanbackXVersion
     implementation 'androidx.leanback:leanback-preference:' + leanbackXVersion
     implementation 'androidx.recommendation:recommendation:' + leanbackXVersion
