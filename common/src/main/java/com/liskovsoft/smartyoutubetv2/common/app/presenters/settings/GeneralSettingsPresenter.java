@@ -2,6 +2,9 @@ package com.liskovsoft.smartyoutubetv2.common.app.presenters.settings;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 
 import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup;
 import com.liskovsoft.sharedutils.helpers.Helpers;
@@ -29,6 +32,9 @@ import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.SearchData;
 import com.liskovsoft.smartyoutubetv2.common.proxy.ProxyManager;
 import com.liskovsoft.smartyoutubetv2.common.proxy.WebProxyDialog;
+import com.liskovsoft.smartyoutubetv2.common.proxy.builtin.BuiltinProxyController;
+import com.liskovsoft.smartyoutubetv2.common.proxy.builtin.ProxyNode;
+import com.liskovsoft.smartyoutubetv2.common.settingsserver.PhoneConfigActivity;
 import com.liskovsoft.smartyoutubetv2.common.utils.AppDialogUtil;
 import com.liskovsoft.smartyoutubetv2.common.utils.SimpleEditDialog;
 import com.liskovsoft.youtubeapi.service.internal.MediaServiceData;
@@ -638,6 +644,8 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
 
         appendProxyManager(settingsPresenter, options);
 
+        appendBuiltinProxy(settingsPresenter, options);
+
         appendConscrypt(settingsPresenter, options);
 
         settingsPresenter.appendCheckedCategory(getContext().getString(R.string.network_settings), options);
@@ -649,11 +657,23 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
         if (proxyManager.isProxySupported()) {
             options.add(UiOptionItem.from(getContext().getString(R.string.enable_web_proxy),
                     option -> {
+                        // Keep the unified proxy mode in sync (feature/proxy):
+                        // editing external settings while built-in mode owns the
+                        // plumbing first hands control back to external mode.
+                        BuiltinProxyController proxyController = BuiltinProxyController.instance(getContext());
+                        if (option.isSelected()
+                                && proxyController.getMode() == BuiltinProxyController.MODE_BUILTIN) {
+                            proxyController.setMode(BuiltinProxyController.MODE_EXTERNAL);
+                        }
                         // Proxy with authentication supported only by OkHttp
                         mPlayerTweaksData.setPlayerDataSource(
                                 option.isSelected() ? PlayerTweaksData.PLAYER_DATA_SOURCE_OKHTTP : PlayerTweaksData.PLAYER_DATA_SOURCE_CRONET);
                         mGeneralData.setProxyEnabled(option.isSelected());
                         new WebProxyDialog(getContext()).enable(option.isSelected());
+                        if (!option.isSelected()
+                                && proxyController.getMode() == BuiltinProxyController.MODE_EXTERNAL) {
+                            proxyController.setMode(BuiltinProxyController.MODE_OFF);
+                        }
                         if (option.isSelected()) {
                             settingsPresenter.closeDialog();
                         }
@@ -662,6 +682,72 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
                     },
                     mGeneralData.isProxyEnabled()));
         }
+    }
+
+    private void appendBuiltinProxy(AppDialogPresenter settingsPresenter, List<OptionItem> options) {
+        BuiltinProxyController controller = BuiltinProxyController.instance(getContext());
+
+        options.add(UiOptionItem.from(getContext().getString(R.string.builtin_proxy),
+                option -> {
+                    controller.setMode(option.isSelected()
+                            ? BuiltinProxyController.MODE_BUILTIN
+                            : BuiltinProxyController.MODE_OFF);
+                    if (option.isSelected()) {
+                        settingsPresenter.closeDialog();
+                    }
+                },
+                controller.getMode() == BuiltinProxyController.MODE_BUILTIN));
+
+        options.add(UiOptionItem.from(buildBuiltinProxyStatusTitle(controller),
+                option -> testBuiltinProxy(controller)));
+
+        options.add(UiOptionItem.from(getContext().getString(R.string.builtin_proxy_configure_phone),
+                option -> {
+                    Intent intent = new Intent(getContext(), PhoneConfigActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    getContext().startActivity(intent);
+                    settingsPresenter.closeDialog();
+                }));
+    }
+
+    private String buildBuiltinProxyStatusTitle(BuiltinProxyController controller) {
+        String mode;
+        switch (controller.getMode()) {
+            case BuiltinProxyController.MODE_EXTERNAL:
+                mode = "External";
+                break;
+            case BuiltinProxyController.MODE_BUILTIN:
+                mode = "Built-in v2ray";
+                break;
+            default:
+                mode = "Off";
+                break;
+        }
+        StringBuilder title = new StringBuilder(getContext().getString(R.string.builtin_proxy_status));
+        title.append(": ").append(mode);
+        if (controller.getMode() == BuiltinProxyController.MODE_BUILTIN) {
+            title.append(" / engine ").append(controller.getEngineState().name().toLowerCase());
+            if (controller.isRawConfigMode()) {
+                title.append(" / raw config");
+            } else {
+                ProxyNode active = controller.getActiveNode();
+                title.append(" / node ").append(active == null ? "none" : active.getDisplayName());
+            }
+            String error = controller.getEngineError();
+            if (error != null) {
+                title.append(" / ").append(error);
+            }
+        }
+        title.append(" (tap to test)");
+        return title.toString();
+    }
+
+    private void testBuiltinProxy(BuiltinProxyController controller) {
+        MessageHelpers.showMessage(getContext(), R.string.builtin_proxy_testing);
+        controller.testConnection((success, detail) ->
+                new Handler(Looper.getMainLooper()).post(() ->
+                        MessageHelpers.showLongMessage(getContext(),
+                                (success ? "OK: " : "FAILED: ") + detail)));
     }
 
     private void appendConscrypt(AppDialogPresenter settingsPresenter, List<OptionItem> options) {

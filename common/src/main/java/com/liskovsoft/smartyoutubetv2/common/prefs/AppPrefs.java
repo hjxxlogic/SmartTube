@@ -24,6 +24,15 @@ public class AppPrefs extends SharedPreferencesBase implements AccountChangeList
     private static final String VIEW_MANAGER_DATA = "view_manager_data";
     private static final String WEB_PROXY_URI = "web_proxy_uri";
     private static final String WEB_PROXY_ENABLED = "web_proxy_enabled";
+    // Built-in proxy (feature/proxy). Mode: -1 = unset (derive from legacy flags),
+    // 0 = off, 1 = external (legacy web proxy), 2 = built-in v2ray.
+    private static final String PROXY_MODE = "proxy_mode";
+    private static final String BUILTIN_PROXY_ACTIVE_NODE = "builtin_proxy_active_node";
+    // External (legacy) proxy settings parked while built-in mode owns the
+    // shared web-proxy prefs; restored verbatim when leaving built-in mode.
+    private static final String BUILTIN_STASH_PROXY_URI = "builtin_stash_proxy_uri";
+    private static final String BUILTIN_STASH_PROXY_ENABLED = "builtin_stash_proxy_enabled";
+    private static final String BUILTIN_HAS_STASH = "builtin_has_stash";
     private static final String LAST_PROFILE_NAME = "last_profile_name";
     private String mBootResolution;
     private final WeakHashSet<ProfileChangeListener> mListeners = new WeakHashSet<>();
@@ -147,6 +156,45 @@ public class AppPrefs extends SharedPreferencesBase implements AccountChangeList
 
     public void setWebProxyEnabled(boolean enabled) {
         putBoolean(WEB_PROXY_ENABLED, enabled);
+    }
+
+    /** Built-in proxy mode: -1 unset, 0 off, 1 external, 2 built-in v2ray. */
+    public int getProxyMode() {
+        return getInt(PROXY_MODE, -1);
+    }
+
+    public void setProxyMode(int mode) {
+        putInt(PROXY_MODE, mode);
+    }
+
+    public String getBuiltinProxyActiveNodeId() {
+        return getString(BUILTIN_PROXY_ACTIVE_NODE, "");
+    }
+
+    public void setBuiltinProxyActiveNodeId(String nodeId) {
+        putString(BUILTIN_PROXY_ACTIVE_NODE, nodeId);
+    }
+
+    public boolean hasBuiltinProxyStash() {
+        return getBoolean(BUILTIN_HAS_STASH, false);
+    }
+
+    public void setBuiltinProxyStash(String uri, boolean enabled) {
+        putString(BUILTIN_STASH_PROXY_URI, uri == null ? "" : uri);
+        putBoolean(BUILTIN_STASH_PROXY_ENABLED, enabled);
+        putBoolean(BUILTIN_HAS_STASH, true);
+    }
+
+    public String getBuiltinProxyStashUri() {
+        return getString(BUILTIN_STASH_PROXY_URI, "");
+    }
+
+    public boolean isBuiltinProxyStashEnabled() {
+        return getBoolean(BUILTIN_STASH_PROXY_ENABLED, false);
+    }
+
+    public void clearBuiltinProxyStash() {
+        putBoolean(BUILTIN_HAS_STASH, false);
     }
 
     private String getProfileName() {

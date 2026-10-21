@@ -27,6 +27,7 @@ import com.liskovsoft.smartyoutubetv2.common.misc.StreamReminderService;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AccountsData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
 import com.liskovsoft.smartyoutubetv2.common.proxy.ProxyManager;
+import com.liskovsoft.smartyoutubetv2.common.proxy.builtin.BuiltinProxyController;
 import com.liskovsoft.smartyoutubetv2.common.utils.IntentExtractor;
 import com.liskovsoft.smartyoutubetv2.common.utils.SimpleEditDialog;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
@@ -171,9 +172,9 @@ public class SplashPresenter extends BasePresenter<SplashView> {
     private void initProxy() {
         if (getContext() != null) {
             // Apply proxy config after global prefs but before starting networking.
-            if (GeneralData.instance(getContext()).isProxyEnabled()) {
-                new ProxyManager(getContext()).configureSystemProxy();
-            }
+            // The controller dispatches on the proxy mode: built-in v2ray starts
+            // its engine here (fail-closed), external keeps the legacy behavior.
+            BuiltinProxyController.instance(getContext()).applyOnStartup();
         }
     }
 

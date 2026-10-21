@@ -54,6 +54,10 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
+    // Built-in v2ray engine (AndroidLibV2rayLite v5.55.0, minSdk 21, ARM ABIs only).
+    // See docs/builtin-proxy.md for provenance and the sha256 of the original AAR.
+    implementation files('libs/libv2ray.aar')
+
     implementation 'androidx.appcompat:appcompat:' + appCompatXVersion
     testImplementation 'junit:junit:' + junitVersion
     testImplementation 'org.robolectric:robolectric:' + robolectricVersion

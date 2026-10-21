@@ -82,5 +82,9 @@
                 <data android:mimeType="application/zip" />
             </intent-filter>
         </activity>
+        <!-- Phone-based configuration (QR + embedded settings server). Not exported. -->
+        <activity
+            android:name="com.liskovsoft.smartyoutubetv2.common.settingsserver.PhoneConfigActivity"
+            android:exported="false" />
     </application>
 </manifest>
